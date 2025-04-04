@@ -10,11 +10,33 @@
         Title="lab2">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Число объектов: " VerticalAlignment="Center"/>
+                <TextBlock x:Name="PointsCountText" Text="1000" Width="60" VerticalAlignment="Center"/>
+                <Slider x:Name="PointsSlider" Minimum="1000" Maximum="100000" Value="1000" Width="200" 
+                        ValueChanged="OnPointsSliderValueChanged"/>
+            </StackPanel>
+        </StackPanel>
 
+        <!-- Канвас для ручной отрисовки -->
+        <Canvas Grid.Row="1" Background="White" x:Name="DrawingCanvas"/>
+
+        <!-- Панель управления -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+            <Button Content="Инициализировать" Click="OnInitializeClick" Margin="5"/>
+            <Button Content="Следующий шаг" Click="OnStepClick" Margin="5"/>
+            <Button Content="Запуск до конца" Click="OnRunToCompletionClick" Margin="5"/>
+        </StackPanel>
+    </Grid>
 </Window>
