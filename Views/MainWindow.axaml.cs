@@ -13,10 +13,9 @@ public partial class MainWindow : Window
     private readonly Canvas _canvas;
     private Maximin _maximin;
     private readonly TextBlock _pointsCountText;
-    
-    private readonly TextBlock _clustersCountText;
+    private KMeans _kMeans;
     private int _numPoints = 1000; // get from User
-    private int _k = 2; // get from User
+    private int _k; // get from User
 
     public MainWindow()
     {
@@ -40,7 +39,7 @@ public partial class MainWindow : Window
         _maximin.Initialize();
 
         // Отрисовка начального состояния
-        DrawCanvas();
+        DrawCanvasMaximin();
     }
 
     private void OnStepClick(object sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -50,7 +49,7 @@ public partial class MainWindow : Window
         // Выполнение одного шага алгоритма
         bool hasNextStep = _maximin.Step();
         // Перерисовка канваса
-        DrawCanvas();
+        DrawCanvasMaximin();
 
         // Если ничего не изменилось, уведомляем
         if (!hasNextStep)
@@ -76,23 +75,92 @@ public partial class MainWindow : Window
             iteration++;
 
             // Перерисовка канваса после каждого шага
-            DrawCanvas();
+            DrawCanvasMaximin();
 
             // Задержка для визуализации (например, 100 мс)
             await Task.Delay(100);
 
         } while (hasNextStep);
+        Console.WriteLine($"Алгоритм завершён после {iteration} итераций.");
+        
+        var (points, cores) = _maximin.GetCurrentState();
+        
+        _k = cores.Count;
+        _kMeans = new KMeans(points, _k);
+        _kMeans.InitializeCentroids();
+        // Выполнение алгоритма до сходимости с отрисовкой каждого шага
+        iteration = 0;
+        bool changed, moved;
+        do
+        {
+            changed = _kMeans.AssignClusters();
+            moved = _kMeans.UpdateCentroids();
+            iteration++;
+            // Перерисовка канваса после каждого шага
+            DrawCanvasKMeans();
+
+            // Задержка для визуализации (например, 100 мс)
+            await Task.Delay(100);
+
+        } while (changed || moved);
 
         Console.WriteLine($"Алгоритм завершён после {iteration} итераций.");
     }
-
+    
     private void OnPointsSliderValueChanged(object sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
         _numPoints = (int)e.NewValue;
         _pointsCountText.Text = _numPoints.ToString();
     }
-    
-    private void DrawCanvas()
+
+    private void DrawCanvasKMeans()
+    {
+        if (_kMeans == null) return;
+
+        // Очистка канваса
+        _canvas.Children.Clear();
+
+        // Получение текущего состояния
+        var (points, centroids) = _kMeans.GetCurrentState();
+
+        // Цвета для кластеров
+        var clusterColors = new[]
+        {
+            Brushes.Blue, Brushes.Green, Brushes.Purple, Brushes.Orange, Brushes.Cyan,
+            Brushes.Magenta, Brushes.Yellow, Brushes.Brown, Brushes.Lime, Brushes.Pink,
+            Brushes.Teal, Brushes.Indigo, Brushes.Violet, Brushes.Gold, Brushes.Silver,
+            Brushes.Coral, Brushes.Turquoise, Brushes.Olive, Brushes.Salmon, Brushes.SkyBlue
+        };
+
+        // Отрисовка точек
+        foreach (var point in points)
+        {
+            var ellipse = new Ellipse
+            {
+                Width = 5,
+                Height = 5,
+                Fill = point.Cluster >= 0 ? clusterColors[point.Cluster % clusterColors.Length] : Brushes.Gray
+            };
+            Canvas.SetLeft(ellipse, point.X - 2.5); // Центрируем точку
+            Canvas.SetTop(ellipse, point.Y - 2.5);
+            _canvas.Children.Add(ellipse);
+        }
+
+        // Отрисовка центроидов
+        foreach (var centroid in centroids)
+        {
+            var ellipse = new Ellipse
+            {
+                Width = 10,
+                Height = 10,
+                Fill = Brushes.Red
+            };
+            Canvas.SetLeft(ellipse, centroid.X - 5); // Центрируем центроид
+            Canvas.SetTop(ellipse, centroid.Y - 5);
+            _canvas.Children.Add(ellipse);
+        }
+    }
+    private void DrawCanvasMaximin()
     {
         if (_maximin == null) return;
 
